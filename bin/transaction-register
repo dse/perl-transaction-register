@@ -5,6 +5,14 @@ use strict;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
+BEGIN {
+    my $dir = "$ENV{HOME}/git/transaction-register-perl/lib";
+    if (-d $dir) {
+        require lib;
+        import lib $dir;
+    }
+}
+
 use My::Transaction::Register;
 
 my $register = My::Transaction::Register->new();
