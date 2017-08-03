@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use My::Transaction::Register;
+
+my $register = My::Transaction::Register->new();
+
+while (<>) {
+    last if /^__END__/;
+    $register->parse_line($_);
+}
+
+$register->output_summary();
+$register->output_checkpoints();
+
+if ($ENV{DEBUG}) {
+    $register->debug();
+}
+
