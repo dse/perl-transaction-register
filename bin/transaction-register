@@ -19,7 +19,7 @@ use File::Basename qw(basename);
 my $progname = basename($0);
 
 if ($progname eq "check") {
-    run_command_check();
+    run_command_check(@ARGV);
 } else {
     my $command = shift(@ARGV);
     if (!defined $command) {
