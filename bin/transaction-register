@@ -30,10 +30,20 @@ if ($progname eq "check") {
         run_command_list_ofx_institutions(@ARGV);
     } elsif ($command eq "get-institution-info" || $command eq "get-ofx-institution-info") {
         run_command_get_ofx_institution_info(@ARGV);
+    } elsif ($command eq "help") {
+        run_command_help();
     } else {
         die("Unknown command: '$command'.  Type '$progname help' for more help.\n");
     }
 }
+
+sub run_command_help { print(<<"END"); }
+usage:
+  $progname help
+  $progname check [FILENAME ...]
+  $progname list-institutions [SEARCH]
+  $progname get-institution-info ID
+END
 
 sub run_command_check {
     my $register = My::Transaction::Register->new();
