@@ -14,6 +14,8 @@ starting-date    = 2017-01-01
 +       01/15   232.50          amex credit card payment
 +       01/15   798.53          #2602: mortgage
 
+# This is a quick-and-dirty text-based format for checkbook registers.
+#
 # In this example, your balances would be:
 #
 #               8218.10       - ledger balance (includes just the posted
@@ -26,8 +28,6 @@ starting-date    = 2017-01-01
 #               9268.13       - future balance (also includes transactions
 #                               marked with the future flag, i.e., you
 #                               plan to make them but haven't yet done so)
-#
-# This is a quick-and-dirty text-based format for checkbook registers.
 #
 # Blank lines, lines containing only whitespace, and lines starting with
 # optional whitespace then '#' are ignored.
