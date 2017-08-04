@@ -348,6 +348,174 @@ sub parse_date {
     return Time::ParseDate::parsedate($date, NOW => $self->_last_date);
 }
 
+use Finance::OFX;
+use XML::LibXML;
+use URI::Escape qw(uri_escape);
+
+sub list_ofx_institutions {
+    my ($self, $search) = @_;
+    my $url = $self->get_ofx_search_url($search);
+    my $doc = $self->get_xml_doc($url);
+    if (!$doc) {
+        return wantarray ? () : undef;
+    }
+    my @nodes = $doc->findnodes("/institutionlist/institutionid");
+    my @result;
+    foreach my $node (@nodes) {
+        push(@result, My::Transaction::Register::Institution->new(
+            id   => $node->getAttribute("id"),
+            name => $node->getAttribute("name")
+        ));
+    }
+    if (wantarray) {
+        return @result;
+    } else {
+        return \@result;
+    }
+}
+
+sub get_ofx_search_url {
+    my ($self, $search) = @_;
+    my $url;
+    if (defined $search) {
+        $url = sprintf("http://www.ofxhome.com/api.php?search=%s", uri_escape($search));
+    } else {
+        $url = "http://www.ofxhome.com/api.php?all=yes";
+    }
+    return $url;
+}
+
+sub get_ofx_institution_info {
+    my ($self, $id) = @_;
+    my $request_url = sprintf("http://www.ofxhome.com/api.php?lookup=%s", uri_escape($id));
+    my $doc = $self->get_xml_doc($request_url);
+    if (!$doc) {
+        return undef;
+    }
+    my $node = eval { $doc->findnodes("/institution")->[0]; };
+    if (!$node) {
+        return undef;
+    }
+    print($doc->toString());
+
+    $id                   = $node->getAttribute("id");
+
+    my $name              = eval { $node->findnodes("name")->[0]->textContent };
+    my $fid               = eval { $node->findnodes("fid")->[0]->textContent };
+    my $org               = eval { $node->findnodes("org")->[0]->textContent };
+    my $url               = eval { $node->findnodes("url")->[0]->textContent };
+    my $brokerid          = eval { $node->findnodes("brokerid")->[0]->textContent };
+    my $ofxfail           = eval { $node->findnodes("ofxfail")->[0]->textContent };
+    my $sslfail           = eval { $node->findnodes("sslfail")->[0]->textContent };
+    my $lastofxvalidation = eval { $node->findnodes("lastofxvalidation")->[0]->textContent };
+    my $lastsslvalidation = eval { $node->findnodes("lastsslvalidation")->[0]->textContent };
+    my $notes             = eval { $node->findnodes("notes")->[0]->textContent };
+
+    my $profile           = eval { $node->findnodes("profile")->[0] };
+
+    my $profile_addr1      = eval { $profile->getAttribute("addr1") };
+    my $profile_addr2      = eval { $profile->getAttribute("addr2") };
+    my $profile_addr3      = eval { $profile->getAttribute("addr3") };
+    my $profile_city       = eval { $profile->getAttribute("city") };
+    my $profile_state      = eval { $profile->getAttribute("state") };
+    my $profile_postalcode = eval { $profile->getAttribute("postalcode") };
+    my $profile_country    = eval { $profile->getAttribute("country") };
+    my $profile_url        = eval { $profile->getAttribute("url") };
+
+    return My::Transaction::Register::InstitutionInfo->new(
+        id                => $id,
+        name              => $name,
+        fid               => $fid,
+        org               => $org,
+        url               => $url,
+        brokerid          => $brokerid,
+        ofxfail           => $ofxfail,
+        sslfail           => $sslfail,
+        lastofxvalidation => $lastofxvalidation,
+        lastsslvalidation => $lastsslvalidation,
+        notes             => $notes,
+        profile => My::Transaction::Register::InstitutionInfo::Profile->new(
+            addr1      => $profile_addr1,
+            addr2      => $profile_addr2,
+            addr3      => $profile_addr3,
+            city       => $profile_city,
+            state      => $profile_state,
+            postalcode => $profile_postalcode,
+            country    => $profile_country,
+            url        => $profile_url
+        )
+    );
+}
+
+sub get {
+    my ($self, $url) = @_;
+    my $ua = My::Transaction::Register::UserAgent->new();
+    my $request = HTTP::Request->new("GET", $url);
+    my $response = $ua->request($request);
+    return $response;
+}
+
+sub get_xml_doc {
+    my ($self, $url) = @_;
+    my $response = $self->get($url);
+    if (!$response->is_success) {
+        return undef;
+    }
+    my $xml = $response->decoded_content;
+    my $doc = XML::LibXML->load_xml(string => $xml);
+    return $doc;
+}
+
+package My::Transaction::Register::Institution;
+use warnings;
+use strict;
+
+use Moose;
+has 'id'   => (is => 'rw', isa => 'Int', required => 1);
+has 'name' => (is => 'rw', isa => 'Str', required => 1);
+
+package My::Transaction::Register::InstitutionInfo;
+use warnings;
+use strict;
+
+use Moose;
+has 'id'                => (is => 'rw', isa => 'Int', required => 1);
+has 'name'              => (is => 'rw', isa => 'Str', required => 1);
+has 'fid'               => (is => 'rw', isa => 'Int', required => 1);
+has 'org'               => (is => 'rw', isa => 'Str', required => 1);
+has 'url'               => (is => 'rw', isa => 'Str', required => 1);
+has 'brokerid'          => (is => 'rw', isa => 'Maybe[Int]', required => 0);
+has 'ofxfail'           => (is => 'rw', isa => 'Bool', required => 1);
+has 'sslfail'           => (is => 'rw', isa => 'Bool', required => 1);
+has 'lastofxvalidation' => (is => 'rw', isa => 'Str', required => 1);
+has 'lastsslvalidation' => (is => 'rw', isa => 'Str', required => 1);
+has 'profile'           => (is => 'rw', isa => 'My::Transaction::Register::InstitutionInfo::Profile', required => 1);
+has 'notes'             => (is => 'rw', isa => 'Maybe[Str]', required => 0);
+
+package My::Transaction::Register::InstitutionInfo::Profile;
+use warnings;
+use strict;
+
+use Moose;
+has 'addr1'      => (is => 'rw', isa => 'Maybe[Str]', required => 1);
+has 'addr2'      => (is => 'rw', isa => 'Maybe[Str]', required => 0);
+has 'addr3'      => (is => 'rw', isa => 'Maybe[Str]', required => 0);
+has 'city'       => (is => 'rw', isa => 'Maybe[Str]', required => 1);
+has 'state'      => (is => 'rw', isa => 'Maybe[Str]', required => 1);
+has 'postalcode' => (is => 'rw', isa => 'Maybe[Str]', required => 1);
+has 'country'    => (is => 'rw', isa => 'Maybe[Str]', required => 1);
+has 'url'        => (is => 'rw', isa => 'Maybe[Str]', required => 1);
+
+# signonmsgset="true" bankmsgset="true" billpaymsgset="true"
+# emailmsgset="true"/>
+
+
+package My::Transaction::Register::UserAgent;
+use warnings;
+use strict;
+
+use base "LWP::UserAgent";
+
 package My::Transaction::Register::Entry;
 use warnings;
 use strict;
