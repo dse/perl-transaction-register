@@ -9,8 +9,8 @@ registers whose format is described below.
 
     transaction-register check [FILENAME ...]
 	
-Then confirm that the ledger balance and pending balance listed in the
-output match with your online banking.
+Then confirm that the ledger balance and pending balance (see below)
+listed in the output match with your online banking.
 
 ## Text File Format
 
