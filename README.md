@@ -76,8 +76,9 @@ With `account-type = checking`, transaction amounts are normally
 debits.  In parentheses they are credits.  Dollar signs are optional.
 Two-digit cents are required.
 
-To specify a check, start the description field with `#`*number* or
-`#`*number*`:` specifying the check number.
+To specify a check, start the description field with
+<code>#<i>number</i></code> or <code>#<i>number</i>:</code> specifying
+the check number.
 
 `[preauth]` amounts in the description field are mainly used to
 confirm your pending balance which will account for the preauth
