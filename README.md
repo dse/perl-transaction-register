@@ -85,11 +85,12 @@ To specify a check, start the description field with
 <code>#<var>number</var></code> or <code>#<var>number</var>:</code>
 specifying the check number.
 
-<code>[preauth <var>amount</var>]</code> amounts in the description
-field are mainly used to confirm your pending balance which will
-account for the preauth amount, not the final amount while the
-transaction is pending.  Typically I use this for sit-down restaurant
-transactions, where preauth amounts don&rsquo;t include tips.
+You can add <code>[preauth <var>amount</var>]</code> to the
+description field.  The pending balance this program outputs will then
+take into account the preauth amount, not the final amount, if the
+transaction is flagged as pending.  Typically I use this for sit-down
+restaurant transactions, where preauth amounts don&rsquo;t include
+tips.
 
 There is code in `My::Transaction::Register` that supports things I
 did not mention here.
