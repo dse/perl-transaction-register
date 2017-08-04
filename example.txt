@@ -10,6 +10,7 @@ starting-date    = 2017-01-01
 -       01/06   5.98            taco bell
         01/08   76.99           cable bill
         01/08   25.97           chi-chi's [preauth 20.97]
+	01/08	(20.00)		payment from some guy on ebay
 +       01/15   (2250.00)       work
 +       01/15   232.50          amex credit card payment
 +       01/15   798.53          #2602: mortgage
@@ -22,10 +23,12 @@ starting-date    = 2017-01-01
 #                               transactions)
 #               8152.12       - pending balance (adds the pending
 #                               transactions)
-#               8049.16       - running balance (adds the transactions
+#               8069.16       - running balance (adds the transactions
 #                               you've made but not yet marked as
 #                               pending or posted)
-#               9268.13       - future balance (also includes transactions
+#               8049.16       - worst-case balance (your running balance,
+#                               excluding deposits not yet posted)
+#               9288.13       - future balance (also includes transactions
 #                               marked with the future flag, i.e., you
 #                               plan to make them but haven't yet done so)
 #
