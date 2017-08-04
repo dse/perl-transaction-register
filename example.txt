@@ -2,17 +2,17 @@ account-type     = checking
 starting-balance = 6511.98
 starting-date    = 2017-01-01
 
-/	01/01	(2250.00)	work
-/	01/03	145.50		car insurance
-/	01/03	318.93		car payment
-/	01/03	79.45		phone bill
--	01/06	60.00		atm
--	01/06	5.98		taco bell
-	01/08	76.99		cable bill
-	01/08	25.97		chi-chi's [preauth 20.97]
-+	01/15	(2250.00)	work
-+	01/15	232.50		amex credit card payment
-+	01/15	798.53          #2602: mortgage
+/       01/01   (2250.00)       work
+/       01/03   145.50          car insurance
+/       01/03   318.93          car payment
+/       01/03   79.45           phone bill
+-       01/06   60.00           atm
+-       01/06   5.98            taco bell
+        01/08   76.99           cable bill
+        01/08   25.97           chi-chi's [preauth 20.97]
++       01/15   (2250.00)       work
++       01/15   232.50          amex credit card payment
++       01/15   798.53          #2602: mortgage
 
 # In this example, your balances would be:
 #
