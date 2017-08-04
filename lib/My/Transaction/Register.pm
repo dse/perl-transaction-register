@@ -17,8 +17,13 @@ BEGIN {
       qr{\?\?\?\?-\?\?-\?\?|    # unknown dates
          \d\d\d\d-\?\?-\?\?|
          \d\d\d\d-\d\d-\?\?|
+         \d\d/\?\?|
+         \?\?/\?\?/\?\?\?\?|
+         \?\?/\?\?/\d\d\d\d|
+         \d\d/\?\?/\d\d\d\d|
          \d\d\d\d-\d\d-\d\d|	# known dates
-         \d\d/\d\d
+         \d\d/\d\d|
+         \d\d/\d\d/\d\d\d\d
          #}x;
     $RX_AMOUNT =
       qr{\$?\(\$?\d+\.\d\d\)|	# for checking: deposit/credit
