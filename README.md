@@ -3,7 +3,7 @@
 ## What is this?
 
 A simple program and Perl module for working with text-file checkbook
-registers.
+registers whose format is described below.
 
 ## How to run?
 
@@ -50,7 +50,7 @@ In this example, your balances would be:
               plan to make them but haven't yet done so)
 
 Blank lines, lines containing only whitespace, and lines starting with
-optional whitespace then '#' are ignored.
+optional whitespace then `#` are ignored.
 
 Transactions specify the date, then the amount, then a description
 field.  They can optionally start with optional whitespace followed by
@@ -68,22 +68,25 @@ Dates are specified in one of the following formats:
 	06-20
 
 You must specify two digits for the month and day, and if you specify
-the year it must be four digits.  day-then-month-then-year formats are
+the year it must be four digits.  Day-then-month-then-year formats are
 not supported.  If the year is not specified it is relative to the
 previously specified transaction date or the starting-date.
 
 With `account-type = checking`, transaction amounts are normally
-debits.  In parentheses they are credits.  Dollar signs are optional.
-Two-digit cents are required.
+debits.  In parentheses they are credits.  (That might be backwards to
+some, but at least in my case most of my transactions are debits so I
+wanted that to be the default.)  Dollar signs are optional.  Two-digit
+cents are required.
 
 To specify a check, start the description field with
-<code>#<i>number</i></code> or <code>#<i>number</i>:</code> specifying
-the check number.
+<code>#<var>number</var></code> or <code>#<var>number</var>:</code>
+specifying the check number.
 
-`[preauth]` amounts in the description field are mainly used to
-confirm your pending balance which will account for the preauth
-amount, not the final amount.  For restaurant transactions, preauth
-amounts don't include tips.
+<code>[preauth <var>amount</var>]</code> amounts in the description
+field are mainly used to confirm your pending balance which will
+account for the preauth amount, not the final amount while the
+transaction is pending.  Typically I use this for sit-down restaurant
+transactions, where preauth amounts don&rsquo;t include tips.
 
 There is code in `My::Transaction::Register` that supports things I
 did not mention here.
