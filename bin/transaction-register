@@ -14,18 +14,61 @@ BEGIN {
 }
 
 use My::Transaction::Register;
+use File::Basename qw(basename);
 
-my $register = My::Transaction::Register->new();
+my $progname = basename($0);
 
-while (<>) {
-    last if /^__END__/;
-    $register->parse_line($_);
+if ($progname eq "check") {
+    run_command_check();
+} else {
+    my $command = shift(@ARGV);
+    if (!defined $command) {
+        die("No command specified.  Type '$progname help' for more help.\n");
+    } elsif ($command eq "check") {
+        run_command_check(@ARGV);
+    } elsif ($command eq "list-institutions" || $command eq "list-ofx-institutions") {
+        run_command_list_ofx_institutions(@ARGV);
+    } elsif ($command eq "get-institution-info" || $command eq "get-ofx-institution-info") {
+        run_command_get_ofx_institution_info(@ARGV);
+    } else {
+        die("Unknown command: '$command'.  Type '$progname help' for more help.\n");
+    }
 }
 
-$register->output_summary();
-$register->output_checkpoints();
+sub run_command_check {
+    my $register = My::Transaction::Register->new();
 
-if ($ENV{DEBUG}) {
-    $register->debug();
+    local $_;
+    local @ARGV = @_;
+
+    while (<>) {
+        last if /^__END__/;
+        $register->parse_line($_);
+    }
+
+    $register->output_summary();
+    $register->output_checkpoints();
+
+    if ($ENV{DEBUG}) {
+        $register->debug();
+    }
+}
+
+sub run_command_list_ofx_institutions {
+    my ($search) = @_;
+    my @institutions = My::Transaction::Register->list_ofx_institutions($search);
+    foreach my $institution (@institutions) {
+        printf("%4d  %s\n", $institution->id, $institution->name);
+    }
+}
+
+use Data::Dumper qw(Dumper);
+
+sub run_command_get_ofx_institution_info {
+    my ($id) = @_;
+    my $info = My::Transaction::Register->get_ofx_institution_info($id);
+    if ($info) {
+        print(Dumper($info));
+    }
 }
 
