@@ -8,19 +8,20 @@ registers whose format is described below.
 ## How to run?
 
     transaction-register check [FILENAME ...]
-	
+
 Then confirm that the ledger balance and pending balance (see below)
 listed in the output match with your online banking.
 
 And/or just confirm your balance isn't zero.
 
-## Text File Format
-
-Example:
+## Text File Format Example
 
     account-type     = checking
     starting-balance = 6511.98
     starting-date    = 2017-01-01
+    
+    # A comment.
+        # Another comment.
 
     /       01/01   (2250.00)       work
     /       01/03   145.50          car insurance
@@ -63,17 +64,36 @@ In this example, your balances would be:
     9288.13 - future balance (also includes transactions
               marked with the future flag, i.e., you
               plan to make them but haven't yet done so)
+              
+## Text File Format Description
 
 Blank lines, lines containing only whitespace, and lines starting with
-optional whitespace then `#` are ignored.
+`#` (with or without optional whitespace before) are ignored.
 
-Transactions specify the date, then the amount, then a description
-field.  They can optionally start with optional whitespace followed by
-a flag:
+You can also have <code><var>name</var> = <var>value</var></code>
+lines.  See example above.  You want to specify these before your
+transactions.  The space at the beginning and end of the line, and the
+space before and after the equal sign, are optional.  Currently
+supported values for <code><var>name</var></code>:
+
+    account-type       Can be checking, credit, or credit-card.
+    starting-balance   Specify a dollar amount.
+    starting-date      Specify a date.  Currently not interpreted in
+                       any way.
+
+Each line can also specify a transaction.  Transactions specify the
+date, then the amount, then a description field.  They're separated by
+spaces.  The description field is the last field, and may itself
+contain spaces.
+
+You can also put one of the following as an additional space-separated
+field before the remaining fields:
 
     /   posted to your account
     -   pending - listed as "pending" in your account
     +   future - transactions you haven't made yet
+    
+You may also prefix the line with spaces.
 
 Dates are specified in one of the following formats:
 
