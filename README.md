@@ -82,9 +82,9 @@ supported values for <code><var>name</var></code>:
                        any way.
 
 Each line can also specify a transaction.  Transactions specify the
-date, then the amount, then a description field.  They're separated by
-spaces.  The description field is the last field, and may itself
-contain spaces.
+date, then the amount, then a description field.  The fields are
+separated by spaces.  The description field is the last field, and may
+itself contain spaces.
 
 You can also put one of the following as an additional space-separated
 field before the remaining fields:
