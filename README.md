@@ -12,6 +12,8 @@ registers whose format is described below.
 Then confirm that the ledger balance and pending balance (see below)
 listed in the output match with your online banking.
 
+And/or just confirm your balance isn't zero.
+
 ## Text File Format
 
 Example:
@@ -32,6 +34,16 @@ Example:
     +       01/15   (2250.00)       work
     +       01/15   232.50          amex credit card payment
     +       01/15   798.53          #2602: mortgage
+
+Example output of running `transaction-register` (presently):
+
+        Ledger balance: $  8218.10  (includes posted transactions)
+                                    CONFIRM: LEDGER BALANCE
+       Pending balance: $  8152.12  (includes pending transactions)
+                                    CONFIRM: AVAILABLE BALANCE
+       Running balance: $  8069.16  (includes all listed transactions)
+    Worst-case balance: $  8049.16  (excludes deposits not posted)
+        Future balance: $  9288.13  (running balance then future transactions)
 
 In this example, your balances would be:
 
