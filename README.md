@@ -133,7 +133,7 @@ Modify the module to support any Time::ParseDate-compatible format
 that doesn't contain whitespace.
 
 Sync with any of the following file formats as exported from your
-online banking and maybe make modify your files minimally in-place:
+online banking:
 
     .qfx   Quicken
     .qbo   Quickbooks
@@ -142,6 +142,8 @@ online banking and maybe make modify your files minimally in-place:
 
 Sync with online banking.  Working example code is hard to find
 though.
+
+When syncing, modify files in-place, keeping changes to a minimum.
 
 ## Miscellaneous
 
