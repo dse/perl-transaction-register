@@ -108,9 +108,6 @@ the year it must be four digits.  Day-then-month-then-year formats are
 not supported.  If the year is not specified it is relative to the
 previously specified transaction date or the starting-date.
 
-I might modify this to support any Time::ParseDate-compatible format
-that doesn't contain whitespace.
-
 With `account-type = checking`, transaction amounts are normally
 debits.  In parentheses they are credits.  (That might be backwards to
 some, but at least in my case most of my transactions are debits so I
@@ -129,6 +126,24 @@ then take into account the preauth amount, not the final amount, if
 the transaction is flagged as pending.  Typically I use this for
 sit-down restaurant transactions, where preauth amounts don&rsquo;t
 include tips.
+
+## TODO
+
+Modify the module to support any Time::ParseDate-compatible format
+that doesn't contain whitespace.
+
+Sync with any of the following file formats as exported from your
+online banking and maybe make modify your files minimally in-place:
+
+    .qfx   Quicken
+    .qbo   Quickbooks
+    .ofx   Open Financial Exchange (used by Microsoft Money?)
+    .csv   Microsoft Excel (maybe?)
+
+Sync with online banking.  Working example code is hard to find
+though.
+
+## Miscellaneous
 
 There is code in `My::Transaction::Register` that supports things I
 did not mention here.
