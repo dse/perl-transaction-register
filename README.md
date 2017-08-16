@@ -12,7 +12,7 @@ registers whose format is described below.
 Then confirm that the ledger balance and pending balance listed in the
 output match with your online banking.
 
-And/or just confirm your balance isn't zero or below.
+And/or just confirm your balance isn't in the negative.
 
 ## Text File Format Example
 
