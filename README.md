@@ -36,7 +36,7 @@ And/or just confirm your balance isn't in the negative.
     +       01/15   232.50          amex credit card payment
     +       01/15   798.53          #2602: mortgage
 
-Example output of running `transaction-register` (presently):
+## Output Example
 
         Ledger balance: $  8218.10  (includes posted transactions)
                                     CONFIRM: LEDGER BALANCE
