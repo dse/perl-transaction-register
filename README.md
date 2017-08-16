@@ -108,6 +108,9 @@ the year it must be four digits.  Day-then-month-then-year formats are
 not supported.  If the year is not specified it is relative to the
 previously specified transaction date or the starting-date.
 
+I might modify this to support any Time::ParseDate-compatible format
+that doesn't contain whitespace.
+
 With `account-type = checking`, transaction amounts are normally
 debits.  In parentheses they are credits.  (That might be backwards to
 some, but at least in my case most of my transactions are debits so I
