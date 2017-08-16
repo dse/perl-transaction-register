@@ -72,9 +72,9 @@ Blank lines, lines containing only whitespace, and lines starting with
 
 You can also have <code><var>name</var> = <var>value</var></code>
 lines.  See example above.  You want to specify these before your
-transactions.  The space at the beginning and end of the line, and the
-space before and after the equal sign, are optional.  Currently
-supported values for <code><var>name</var></code>:
+transactions.  The whitespace at the beginning and end of the line,
+and the whitespace before and after the equal sign, are optional.
+Currently supported values for <code><var>name</var></code>:
 
     account-type       Can be checking, credit, or credit-card.
     starting-balance   Specify a dollar amount.
@@ -83,17 +83,17 @@ supported values for <code><var>name</var></code>:
 
 Each line can also specify a transaction.  Transactions specify the
 date, then the amount, then a description field.  The fields are
-separated by spaces.  The description field is the last field, and may
-itself contain spaces.
+separated by whitespaces.  The description field is the last field,
+and may itself contain whitespaces.
 
-You can also put one of the following as an additional space-separated
-field before the remaining fields:
+You can also put one of the following as an additional
+whitespace-separated field before the remaining fields:
 
     /   posted to your account
     -   pending - listed as "pending" in your account
     +   future - transactions you haven't made yet
     
-You may also prefix the line with spaces.
+You may also prefix the line with whitespaces.
 
 Dates are specified in one of the following formats:
 
