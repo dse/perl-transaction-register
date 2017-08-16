@@ -115,7 +115,9 @@ cents are required.
 
 To specify a check, start the description field with
 <code>#<var>number</var></code> or <code>#<var>number</var>:</code>
-specifying the check number.
+specifying the check number.  It will not be interpreted as a comment,
+since the `#` is not at the start of the line (with optional
+whitespace preceeding).
 
 You can add <code>[preauth <var>amount</var>]</code> to the
 description field.  The pending balance this program outputs will then
