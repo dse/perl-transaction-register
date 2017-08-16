@@ -3,7 +3,8 @@
 ## What is this?
 
 A simple program and Perl module for working with text-file checkbook
-registers whose format is described below.
+registers whose format is described below.  It's primary for my
+personal use but you can use it too.
 
 ## How to run?
 
