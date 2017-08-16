@@ -119,12 +119,12 @@ specifying the check number.  It will not be interpreted as a comment,
 since the `#` is not at the start of the line (with optional
 whitespace preceeding).
 
-You can add <code>[preauth <var>amount</var>]</code> to the
-description field.  The pending balance this program outputs will then
-take into account the preauth amount, not the final amount, if the
-transaction is flagged as pending.  Typically I use this for sit-down
-restaurant transactions, where preauth amounts don&rsquo;t include
-tips.
+You can specify <code>[preauth <var>amount</var>]</code> somewhere in
+the description field.  The pending balance this program outputs will
+then take into account the preauth amount, not the final amount, if
+the transaction is flagged as pending.  Typically I use this for
+sit-down restaurant transactions, where preauth amounts don&rsquo;t
+include tips.
 
 There is code in `My::Transaction::Register` that supports things I
 did not mention here.
