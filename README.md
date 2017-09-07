@@ -6,6 +6,12 @@ A simple program and Perl module for working with text-file checkbook
 registers whose format is described below.  It's primary for my
 personal use but you can use it too.
 
+NOTE: This is not a double-entry accounting system.  If you want one,
+visit the [Plain Text Accounting](http://plaintextaccounting.org/) web
+site. The most popular is [Ledger](http://ledger-cli.org/), invented
+by the guy who now maintains
+[Emacs](https://www.gnu.org/software/emacs/).  :-)
+
 ## How to run?
 
     transaction-register check [FILENAME ...]
