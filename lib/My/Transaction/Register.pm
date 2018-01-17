@@ -276,7 +276,7 @@ sub parse_line {
             $self->start_date($value);
         }
     } else {
-        warn("Funny-looking line at $ARGV line $.\n");
+        die("Funny-looking line at $ARGV line $.\n");
     }
 }
 
@@ -353,7 +353,7 @@ sub parse_date {
     return Time::ParseDate::parsedate($date, NOW => $self->_last_date);
 }
 
-use Finance::OFX;
+# use Finance::OFX;
 use XML::LibXML;
 use URI::Escape qw(uri_escape);
 
