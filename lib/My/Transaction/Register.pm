@@ -33,7 +33,7 @@ BEGIN {
     # optional flag, then date, then amount, then merchant
     $RX_LINE_1 =
       qr{^\s*
-         (?:([\-\*\/\+]+)\s*)?	# optional flag (posted, pending, future, etc.)
+         (?:([\.\-\*\/\+]+)\s*)? # optional flag (posted, pending, future, etc.)
          ($RX_DATE)\s+
          ($RX_AMOUNT)\s+
          (\S.*?)		# merchant
@@ -43,7 +43,7 @@ BEGIN {
     # optional flag, then date, then merchant, then amount
     $RX_LINE_2 =
       qr{^\s*
-         (?:([\-\*\/\+]+)\s*)?	# optional flag (posted, pending, future, etc.)
+         (?:([\.\-\*\/\+]+)\s*)? # optional flag (posted, pending, future, etc.)
          ($RX_DATE)\s+
          (\S.*?)                # merchant
          \s+
@@ -219,6 +219,8 @@ sub process_parsed_line {
             $entry->is_posted(1);
         } elsif ($flag eq "+") {
             $entry->is_future(1);
+        } elsif ($flag eq ".") {
+            # do nothing
         }
     }
     push(@{$self->entries}, $entry);
