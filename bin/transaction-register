@@ -6,7 +6,7 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 
 BEGIN {
-    my $dir = "$ENV{HOME}/git/transaction-register-perl/lib";
+    my $dir = "$ENV{HOME}/git/dse.d/perl-transaction-register/lib";
     if (-d $dir) {
         require lib;
         import lib $dir;
