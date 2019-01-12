@@ -26,6 +26,8 @@ if ($progname eq "check") {
         die("No command specified.  Type '$progname help' for more help.\n");
     } elsif ($command eq "check") {
         run_command_check(@ARGV);
+    } elsif ($command eq "rewrite") {
+        run_command_rewrite(@ARGV);
     } elsif ($command eq "list-institutions" || $command eq "list-ofx-institutions") {
         run_command_list_ofx_institutions(@ARGV);
     } elsif ($command eq "get-institution-info" || $command eq "get-ofx-institution-info") {
@@ -41,6 +43,7 @@ sub run_command_help { print(<<"END"); }
 usage:
   $progname help
   $progname check [FILENAME ...]
+  $progname rewrite [FILENAME ...]
   $progname list-institutions [SEARCH]
   $progname get-institution-info ID
 END
@@ -62,6 +65,21 @@ sub run_command_check {
     if ($ENV{DEBUG}) {
         $register->debug();
     }
+}
+
+sub run_command_rewrite {
+    my $register = My::Transaction::Register->new();
+
+    local $_;
+    local @ARGV = @_;
+
+    while (<>) {
+        last if /^__END__/;
+        s{\R\z}{};              # safer chomp
+        $register->parse_line($_);
+    }
+
+    $register->output_as_string();
 }
 
 sub run_command_list_ofx_institutions {
