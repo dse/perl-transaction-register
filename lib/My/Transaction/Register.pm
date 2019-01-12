@@ -8,6 +8,7 @@ use feature "switch";
 use POSIX qw(strftime);
 use Carp qw(croak);
 use List::MoreUtils qw(all);
+use Text::Tabs qw(expand unexpand);
 
 use constant LOOSELY_DEFINED_DATE => 1;
 
@@ -243,6 +244,10 @@ sub process_parsed_line {
         $entry->merchant
     );
 
+    if ($line->{text} =~ m{\t}) {
+        $normalized_text = unexpand($normalized_text);
+    }
+
     $line->{normalized_text} = $normalized_text;
     $line->{entry}           = $entry;
 
@@ -304,9 +309,18 @@ sub parse_line {
             $line->{type} = 'start-balance';
             $line->{data} = $value;
         } elsif ($name eq "starting-date") {
-            $self->start_date($value);
+            my $parse_date = $self->parse_date_absolute($value);
+            if (!defined $parse_date) {
+                die(sprintf("invalid date '%s' at %s line %d\n",
+                            $value,
+                            $ARGV,
+                            $.));
+            }
+            $self->start_date($parse_date);
             $line->{type} = 'start-date';
-            $line->{data} = $value;
+            $line->{data} = $parse_date;
+            $self->_last_date($parse_date);
+            $self->_last_date_fmt(strftime('%Y-%m-%d', localtime($parse_date)));
         }
         return;
     }
@@ -401,9 +415,25 @@ sub output_as_string {
 
 use Time::ParseDate qw();
 
+use constant SIX_MONTHS_FUTURE => 60 * 60 * 24 * 183;
+
 sub parse_date {
     my ($self, $date) = @_;
-    return Time::ParseDate::parsedate($date, NOW => $self->_last_date);
+
+    # prefer a date that's between (six months ago) and (six months
+    # from now).
+    my $result = Time::ParseDate::parsedate(
+        $date,
+        PREFER_PAST => 1,
+        NOW => $self->_last_date + SIX_MONTHS_FUTURE
+    );
+    return $result;
+}
+
+sub parse_date_absolute {
+    my ($self, $date) = @_;
+    my $result = Time::ParseDate::parsedate($date);
+    return $result;
 }
 
 # use Finance::OFX;
@@ -598,8 +628,8 @@ sub get_flag_character {
 
 sub get_amount_fmt {
     my ($self) = @_;
-    return sprintf('(%.2f)', -$self->amount) if $self->amount < 0;
-    return sprintf('%.2f', $self->amount);
+    return sprintf('%.2f', -$self->amount) if $self->amount < 0;
+    return sprintf('(%.2f)', $self->amount);
 }
 
 package My::Transaction::Register::Line;
