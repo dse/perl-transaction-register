@@ -9,6 +9,8 @@ use POSIX qw(strftime);
 use Carp qw(croak);
 use List::MoreUtils qw(all);
 
+use constant LOOSELY_DEFINED_DATE => 1;
+
 # We implement these as variables so we can interpolate them into
 # regexes.
 use vars qw($RX_DATE $RX_AMOUNT $RX_LINE_1 $RX_LINE_2);
@@ -25,6 +27,10 @@ BEGIN {
          \d\d/\d\d|
          \d\d/\d\d/\d\d\d\d
          #}x;
+
+    if (LOOSELY_DEFINED_DATE) {
+        $RX_DATE = qr{\S+}x;
+    }
     $RX_AMOUNT =
       qr{\$?\(\$?\d+\.\d\d\)|	# for checking: deposit/credit
          -?\$?-?\d+\.\d\d\b	# for checking: withdrawal/debit
@@ -59,8 +65,8 @@ has 'checkpoints'    => (is => 'rw', isa => 'ArrayRef[HashRef]', default => sub 
 has 'account_type'   => (is => 'rw', isa => 'Str',               default => "checking");
 has 'start_date'     => (is => 'rw', isa => 'Str',               default => "1970-01-01");
 has '_stop_parsing'  => (is => 'rw', isa => 'Bool',              default => 0);
-has '_last_date'     => (is => 'rw', isa => 'Str');
-has '_last_date_fmt' => (is => 'rw', isa => 'Str');
+has '_last_date'     => (is => 'rw', isa => 'Str|Undef');
+has '_last_date_fmt' => (is => 'rw', isa => 'Str|Undef');
 
 sub multiplier {
     my ($self) = @_;
@@ -176,7 +182,7 @@ sub parse_amount {
 }
 
 sub process_parsed_line {
-    my ($self, $entry, $flag, $date, $amount, $merchant) = @_;
+    my ($self, $line, $entry, $flag, $date, $amount, $merchant) = @_;
 
     warn("<< $amount\n") if eval { $ENV{DEBUG} && $ENV{DEBUG} >= 2 };
     $amount = parse_amount($amount);
@@ -202,11 +208,16 @@ sub process_parsed_line {
         $entry->pending_amount(parse_amount($1));
     }
     my $parse_date = $self->parse_date($date);
-    my $date_fmt = strftime("%Y-%m-%d", localtime($parse_date));
+    my $date_fmt;
+    if (defined $parse_date) {
+        $date_fmt = strftime("%Y-%m-%d", localtime($parse_date));
+    } else {
+        warn(sprintf("Cannot parse date %s at %s line %s.\n",
+                     $date, $ARGV, $.));
+    }
 
     $self->_last_date($parse_date);
     $self->_last_date_fmt($date_fmt);
-
     $entry->date($parse_date);
     $entry->date_fmt($date_fmt);
     $entry->merchant($merchant);
@@ -223,6 +234,18 @@ sub process_parsed_line {
             # do nothing
         }
     }
+
+    my $normalized_text = sprintf(
+        "%-7s %-15s %-15s %s",
+        $entry->get_flag_character,
+        $entry->date_fmt,
+        $entry->get_amount_fmt,
+        $entry->merchant
+    );
+
+    $line->{normalized_text} = $normalized_text;
+    $line->{entry}           = $entry;
+
     push(@{$self->entries}, $entry);
 }
 
@@ -245,41 +268,61 @@ sub parse_line {
         text        => $_
     );
 
-    chomp();
     return if /^\s*\#/;
     return unless /\S/;
-    if ($_ =~ $RX_LINE_1) {
-        my ($flag, $date, $amount, $merchant) = ($1, $2, $3, $4);
-        $self->process_parsed_line($entry, $flag, $date, $amount, $merchant);
-    } elsif ($_ =~ $RX_LINE_2) {
-        my ($flag, $date, $merchant, $amount) = ($1, $2, $3, $4);
-        $self->process_parsed_line($entry, $flag, $date, $amount, $merchant);
-    } elsif (m{^\s*\**\s*CHECKPOINT\s*\**\s*}i) {
+
+    if (m{^\s*\**\s*CHECKPOINT\s*\**\s*}i) {
         my $note = $';
         warn("checkpoint\n") if $ENV{DEBUG};
-        push(@{$self->checkpoints}, My::Transaction::Register::Checkpoint->new(
+        my $checkpoint = My::Transaction::Register::Checkpoint->new(
             date => $self->_last_date,
             date_fmt => $self->_last_date_fmt,
             running_balance => $self->running_balance(),
             note => $note
-        ));
-    } elsif (m{^\s*\**\s*STOP\s*\**\s*}i) {
+        );
+        push(@{$self->checkpoints}, $checkpoint);
+        $line->{type} = 'checkpoint';
+        $line->{data} = $checkpoint;
+        return;
+    }
+    if (m{^\s*\**\s*STOP\s*\**\s*}i) {
         $self->_stop_parsing(1);
-    } elsif (m{^\s*(\S+)\s*=\s*(.*?)\s*$}i) {
+        $line->{type} = 'stop-parsing';
+        return;
+    }
+    if (m{^\s*(\S+)\s*=\s*(.*?)\s*$}i) {
         my ($name, $value) = ($1, $2);
         if ($name eq "account-type") {
             $self->account_type($value);
+            $line->{type} = 'account-type';
+            $line->{data} = $value;
         } elsif ($name eq "starting-balance") {
             if ($self->start_balance) {
                 warn("Second starting balance specified at $ARGV line $.\n");
             }
             $self->start_balance($value);
+            $line->{type} = 'start-balance';
+            $line->{data} = $value;
         } elsif ($name eq "starting-date") {
             $self->start_date($value);
+            $line->{type} = 'start-date';
+            $line->{data} = $value;
         }
-    } else {
-        die("Funny-looking line at $ARGV line $.\n");
+        return;
     }
+
+    if ($_ =~ $RX_LINE_1) {
+        my ($flag, $date, $amount, $merchant) = ($1, $2, $3, $4);
+        $self->process_parsed_line($line, $entry, $flag, $date, $amount, $merchant);
+        return;
+    }
+    if ($_ =~ $RX_LINE_2) {
+        my ($flag, $date, $merchant, $amount) = ($1, $2, $3, $4);
+        $self->process_parsed_line($line, $entry, $flag, $date, $amount, $merchant);
+        return;
+    }
+
+    die("Funny-looking line at $ARGV line $.\n");
 }
 
 use Text::ASCIITable;
@@ -345,6 +388,14 @@ sub output_checkpoints {
                    $checkpoint->date_fmt,
                    $checkpoint->note);
         }
+    }
+}
+
+sub output_as_string {
+    my ($self) = @_;
+    foreach my $line (@{$self->lines}) {
+        print $line->{normalized_text} // $line->{text};
+        print "\n";
     }
 }
 
@@ -533,9 +584,23 @@ has 'is_pending'     => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_posted'      => (is => 'rw', isa => 'Bool', default => 0);
 has 'pending_amount' => (is => 'rw', isa => 'Num',  required => 0);
 has 'amount'         => (is => 'rw', isa => 'Num',  default => 0);
-has 'date'           => (is => 'rw', isa => 'Str');
-has 'date_fmt'       => (is => 'rw', isa => 'Str');
+has 'date'           => (is => 'rw', isa => 'Str|Undef');
+has 'date_fmt'       => (is => 'rw', isa => 'Str|Undef');
 has 'merchant'       => (is => 'rw', isa => 'Str');
+
+sub get_flag_character {
+    my ($self) = @_;
+    return '-' if $self->is_pending;
+    return '/' if $self->is_posted;
+    return '+' if $self->is_future;
+    return '.';
+}
+
+sub get_amount_fmt {
+    my ($self) = @_;
+    return sprintf('(%.2f)', -$self->amount) if $self->amount < 0;
+    return sprintf('%.2f', $self->amount);
+}
 
 package My::Transaction::Register::Line;
 use warnings;
