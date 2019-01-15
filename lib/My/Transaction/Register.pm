@@ -11,6 +11,7 @@ use List::MoreUtils qw(all);
 use Text::Tabs qw(expand unexpand);
 
 use constant LOOSELY_DEFINED_DATE => 1;
+use constant LOOSELY_DEFINED_AMOUNT => 1;
 
 # We implement these as variables so we can interpolate them into
 # regexes.
@@ -33,16 +34,27 @@ BEGIN {
         $RX_DATE = qr{\S+}x;
     }
     $RX_AMOUNT =
-      qr{\$?\(\$?\d+\.\d\d\)|	# for checking: deposit/credit
+      qr{\$?
+         \(\$?\d+\.\d\d\)|	# for checking: deposit/credit
          -?\$?-?\d+\.\d\d\b	# for checking: withdrawal/debit
          #}x;
+
+    my $RX_PARSE_DATE   = $RX_DATE;
+    my $RX_PARSE_AMOUNT = $RX_AMOUNT;
+
+    if (LOOSELY_DEFINED_DATE) {
+        $RX_PARSE_DATE = qr{\S+}xi;
+    }
+    if (LOOSELY_DEFINED_AMOUNT) {
+        $RX_PARSE_AMOUNT = qr{(?:$RX_AMOUNT|\?+)}xi;
+    }
 
     # optional flag, then date, then amount, then merchant
     $RX_LINE_1 =
       qr{^\s*
          (?:([\.\-\*\/\+]+)\s*)? # optional flag (posted, pending, future, etc.)
-         ($RX_DATE)\s+
-         ($RX_AMOUNT)\s+
+         ($RX_PARSE_DATE)\s+
+         ($RX_PARSE_AMOUNT)\s+
          (\S.*?)		# merchant
          \s*$
          #}x;
@@ -51,10 +63,10 @@ BEGIN {
     $RX_LINE_2 =
       qr{^\s*
          (?:([\.\-\*\/\+]+)\s*)? # optional flag (posted, pending, future, etc.)
-         ($RX_DATE)\s+
+         ($RX_PARSE_DATE)\s+
          (\S.*?)                # merchant
          \s+
-         ($RX_AMOUNT)\s*$
+         ($RX_PARSE_AMOUNT)\s*$
          #}x;
 }
 
@@ -68,6 +80,8 @@ has 'start_date'     => (is => 'rw', isa => 'Str',               default => "197
 has '_stop_parsing'  => (is => 'rw', isa => 'Bool',              default => 0);
 has '_last_date'     => (is => 'rw', isa => 'Str|Undef');
 has '_last_date_fmt' => (is => 'rw', isa => 'Str|Undef');
+has 'comment_style'  => (is => 'rw', isa => 'Str',               default => 'c++');
+has 'strip_comments' => (is => 'rw', isa => 'Bool',              default => 1);
 
 sub multiplier {
     my ($self) = @_;
@@ -96,7 +110,7 @@ sub balance {
         if ($map_amount) {
             $result += $self->multiplier * $map_amount->($entry);
         } else {
-            $result += $self->multiplier * $entry->amount;
+            $result += $self->multiplier * ($entry->amount // 0);
         }
     }
     return $result;
@@ -174,12 +188,15 @@ sub future_balance {
 
 sub parse_amount {
     my ($amount) = @_;
-    $amount =~ s{\$+}{}g;
-    if ($amount =~ m{^\((.*)\)$}) {
-        return 0.0 + $1;        # deposit/credit (casting to double)
-    } else {
-        return 0.0 - $amount;   # withdrawal/debit (casting to double)
+    if ($amount =~ m{^$RX_AMOUNT$}xi) {
+        $amount =~ s{\$+}{}g;
+        if ($amount =~ m{^\((.*)\)$}) {
+            return 0.0 + $1;    # deposit/credit (casting to double)
+        } else {
+            return 0.0 - $amount; # withdrawal/debit (casting to double)
+        }
     }
+    return undef;
 }
 
 sub process_parsed_line {
@@ -192,10 +209,18 @@ sub process_parsed_line {
         if ($self->start_balance) {
             warn("Second starting balance specified at $ARGV line $.\n");
         }
-        $self->start_balance(-$amount);
+        if (defined $amount) {
+            $self->start_balance(-$amount);
+        } else {
+            $self->start_balance(0);
+        }
         return;
     }
-    $entry->amount($amount);
+    if (defined $amount) {
+        $entry->amount($amount);
+    } else {
+        $entry->amount(undef);
+    }
     if ($merchant =~ m{\[\s*p(?:reauth|end(?:ing)?)?\s+
                        ($RX_AMOUNT)
                        \s*\]}xi) {
@@ -215,6 +240,12 @@ sub process_parsed_line {
     } else {
         warn(sprintf("Cannot parse date %s at %s line %s.\n",
                      $date, $ARGV, $.));
+    }
+
+    if ($self->strip_comments) {
+        if ($self->comment_style eq 'c++') {
+            $merchant =~ s{\s*//.*\z}{};
+        }
     }
 
     $self->_last_date($parse_date);
@@ -422,12 +453,18 @@ sub parse_date {
 
     # prefer a date that's between (six months ago) and (six months
     # from now).
-    my $result = Time::ParseDate::parsedate(
+    if (defined $self->_last_date) {
+        return Time::ParseDate::parsedate(
+            $date,
+            PREFER_PAST => 1,
+            NOW => $self->_last_date + SIX_MONTHS_FUTURE
+        );
+    }
+    return Time::ParseDate::parsedate(
         $date,
         PREFER_PAST => 1,
-        NOW => $self->_last_date + SIX_MONTHS_FUTURE
+        NOW => time() + SIX_MONTHS_FUTURE
     );
-    return $result;
 }
 
 sub parse_date_absolute {
@@ -612,8 +649,8 @@ use Moose;
 has 'is_future'      => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_pending'     => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_posted'      => (is => 'rw', isa => 'Bool', default => 0);
-has 'pending_amount' => (is => 'rw', isa => 'Num',  required => 0);
-has 'amount'         => (is => 'rw', isa => 'Num',  default => 0);
+has 'pending_amount' => (is => 'rw', isa => 'Num|Undef', required => 0, default => 0);
+has 'amount'         => (is => 'rw', isa => 'Num|Undef', required => 0, default => 0);
 has 'date'           => (is => 'rw', isa => 'Str|Undef');
 has 'date_fmt'       => (is => 'rw', isa => 'Str|Undef');
 has 'merchant'       => (is => 'rw', isa => 'Str');
@@ -628,8 +665,11 @@ sub get_flag_character {
 
 sub get_amount_fmt {
     my ($self) = @_;
-    return sprintf('%.2f', -$self->amount) if $self->amount < 0;
-    return sprintf('(%.2f)', $self->amount);
+    if (defined $self->amount) {
+        return sprintf('%.2f', -$self->amount) if $self->amount < 0;
+        return sprintf('(%.2f)', $self->amount);
+    }
+    return '???';
 }
 
 package My::Transaction::Register::Line;
