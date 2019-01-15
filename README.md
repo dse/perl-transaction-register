@@ -41,7 +41,8 @@ And/or just confirm your balance isn't in the negative.
             01/08   (20.00)         payment from some guy on ebay
     +       01/15   (2250.00)       work
     +       01/15   232.50          amex credit card payment
-    +       01/15   798.53          #2602: mortgage
+    !       01/15   798.53          #2602: mortgage
+    +       01/23   ???             LevelUp
 
 ## Output Example
 
@@ -51,7 +52,7 @@ And/or just confirm your balance isn't in the negative.
                                     CONFIRM: AVAILABLE BALANCE
        Running balance: $  8069.16  (includes all listed transactions)
     Worst-case balance: $  8049.16  (excludes deposits not posted)
-        Future balance: $  9288.13  (running balance then future transactions)
+        Future balance: $  9288.13  (running balance then future and to-do transactions)
 
 In this example, your balances would be:
 
@@ -69,8 +70,9 @@ In this example, your balances would be:
               excluding deposits not yet posted)
 
     9288.13 - future balance (also includes transactions
-              marked with the future flag, i.e., you
-              plan to make them but haven't yet done so)
+              marked with the future or to-do flag, i.e., you
+              plan to make them but haven't yet done so,
+              or automatic transactions yet to take place)
               
 ## Text File Format Description
 
@@ -98,21 +100,54 @@ whitespace-separated field before the remaining fields:
 
     /   posted to your account
     -   pending - listed as "pending" in your account
-    +   future - transactions you haven't made yet
+    +   future - transactions you haven't made yet,
+        typically for automatic transactions
+    !   to-do - transactions you haven't made yet,
+        typically for checks you need to write
+    .   recorded - an optional 'flag' indicating the
+        transaction isn't flagged.  This is useful
+        to enable running `sort -k2`.
     
 You may also prefix the line with whitespaces.
 
-Dates are specified in one of the following formats:
+Amounts are specified as follows:
+
+-   Regular amounts are for the default transaction type
+    (withdrawals for checking accounts).
+-   Negative or parentheses-surrounded amounts are the
+    opposite type (deposits for checking accounts).
+-   Dollar sign `$` is optional.
+-   Must contain two decimal places.
+
+Examples:
+
+    123.45
+    $123.45
+
+Negative amounts:
+
+    (123.45)
+    $(123.45)
+    ($123.45)
+    -$123.45
+    $-123.45
+
+You can also use one or more '?' characters to specify an unknown
+amount:
+
+    ???
+
+Dates are specified in any format compatible with `Time::ParseDate`
+that does not contain whitespace.  Examples:
 
 	06/20/2017
 	06/20
 	2017-06-20
 	06-20
 
-You must specify two digits for the month and day, and if you specify
-the year it must be four digits.  Day-then-month-then-year formats are
-not supported.  If the year is not specified it is relative to the
-previously specified transaction date or the starting-date.
+If the year is not specified it is relative to the previously
+specified transaction date, or the starting-date, or the current time,
+whichever is defined first.
 
 With `account-type = checking`, transaction amounts are normally
 debits.  In parentheses they are credits.  (That might be backwards to
@@ -132,6 +167,8 @@ then take into account the preauth amount, not the final amount, if
 the transaction is flagged as pending.  Typically I use this for
 sit-down restaurant transactions, where preauth amounts don&rsquo;t
 include tips.
+
+
 
 ## TODO
 
