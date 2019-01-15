@@ -52,7 +52,7 @@ BEGIN {
     # optional flag, then date, then amount, then merchant
     $RX_LINE_1 =
       qr{^\s*
-         (?:([\.\-\*\/\+]+)\s*)? # optional flag (posted, pending, future, etc.)
+         (?:([\.\-\*\/\+\!]+)\s*)? # optional flag (posted, pending, future, etc.)
          ($RX_PARSE_DATE)\s+
          ($RX_PARSE_AMOUNT)\s+
          (\S.*?)		# merchant
@@ -62,7 +62,7 @@ BEGIN {
     # optional flag, then date, then merchant, then amount
     $RX_LINE_2 =
       qr{^\s*
-         (?:([\.\-\*\/\+]+)\s*)? # optional flag (posted, pending, future, etc.)
+         (?:([\.\-\*\/\+\!]+)\s*)? # optional flag (posted, pending, future, etc.)
          ($RX_PARSE_DATE)\s+
          (\S.*?)                # merchant
          \s+
@@ -124,7 +124,7 @@ sub running_balance {
         length => $length,
         filter => sub {
             my ($entry) = @_;
-            return !$entry->is_future;
+            return !$entry->is_future && !$entry->is_todo;
         }
     );
 }
@@ -137,7 +137,7 @@ sub pending_balance {
         length => $length,
         filter => sub {
             my ($entry) = @_;
-            return ($entry->is_pending || $entry->is_posted) && !$entry->is_future;
+            return ($entry->is_pending || $entry->is_posted) && !$entry->is_future && !$entry->is_todo;
         },
         map_amount => sub {
             my ($entry) = @_;
@@ -158,7 +158,7 @@ sub posted_balance {
         length => $length,
         filter => sub {
             my $entry = shift();
-            return $entry->is_posted && !$entry->is_future;
+            return $entry->is_posted && !$entry->is_future && !$entry->is_todo;
         }
     );
 }
@@ -172,6 +172,7 @@ sub worst_case_balance {
         filter => sub {
             my $entry = shift();
             return 0 if $entry->is_future;
+            return 0 if $entry->is_todo;
             return ($entry->amount < 0) || $entry->is_posted;
         }
     );
@@ -254,16 +255,22 @@ sub process_parsed_line {
     $entry->date_fmt($date_fmt);
     $entry->merchant($merchant);
 
+    my $flag_out;
     if (defined($flag) and ($flag ne "")) {
+        my $length = length($flag);
         $flag = substr($flag, 0, 1);
+        $entry->flag_out($flag x $length);
         if ($flag eq "-") {
             $entry->is_pending(1);
         } elsif ($flag eq "*" or $flag eq "/") {
             $entry->is_posted(1);
         } elsif ($flag eq "+") {
             $entry->is_future(1);
+        } elsif ($flag eq "!") {
+            $entry->is_todo(1);
         } elsif ($flag eq ".") {
-            # do nothing
+            # regular entry, not posted, act as if there is no flag
+            # character at all
         }
     }
 
@@ -281,6 +288,7 @@ sub process_parsed_line {
 
     $line->{normalized_text} = $normalized_text;
     $line->{entry}           = $entry;
+    $line->{flag_out}        = $flag_out;
 
     push(@{$self->entries}, $entry);
 }
@@ -380,7 +388,7 @@ sub debug {
     my $worst_case;
     my $future;
 
-    my @cols = qw(Number Date Amount Running Pending Ledger Worst-Case Future);
+    my @cols = qw(Number Date Amount Running Pending Ledger Worst-Case Future To-Do);
 
     my $t = Text::ASCIITable->new();
     $t->setCols(@cols);
@@ -419,7 +427,7 @@ sub output_summary {
            $self->running_balance());
     printf("Worst-case balance: \$%9.2f  (excludes deposits not posted)\n",
            $self->worst_case_balance());
-    printf("    Future balance: \$%9.2f  (running balance then future transactions)\n",
+    printf("    Future balance: \$%9.2f  (running balance then future and to-do transactions)\n",
            $self->future_balance());
 }
 
@@ -649,17 +657,21 @@ use Moose;
 has 'is_future'      => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_pending'     => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_posted'      => (is => 'rw', isa => 'Bool', default => 0);
+has 'is_todo'        => (is => 'rw', isa => 'Bool', default => 0);
 has 'pending_amount' => (is => 'rw', isa => 'Num|Undef', required => 0, default => 0);
 has 'amount'         => (is => 'rw', isa => 'Num|Undef', required => 0, default => 0);
 has 'date'           => (is => 'rw', isa => 'Str|Undef');
 has 'date_fmt'       => (is => 'rw', isa => 'Str|Undef');
 has 'merchant'       => (is => 'rw', isa => 'Str');
+has 'flag_out'       => (is => 'rw', isa => 'Str|Undef', required => 0);
 
 sub get_flag_character {
     my ($self) = @_;
+    return $self->flag_out if defined $self->flag_out;
     return '-' if $self->is_pending;
     return '/' if $self->is_posted;
     return '+' if $self->is_future;
+    return '!' if $self->is_todo;
     return '.';
 }
 
