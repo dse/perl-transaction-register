@@ -24,6 +24,8 @@ if ($progname eq "check") {
     my $command = shift(@ARGV);
     if (!defined $command) {
         die("No command specified.  Type '$progname help' for more help.\n");
+    } elsif ($command eq "dump") {
+        run_command_dump(@ARGV);
     } elsif ($command eq "check") {
         run_command_check(@ARGV);
     } elsif ($command eq "rewrite") {
@@ -65,6 +67,17 @@ sub run_command_check {
     if ($ENV{DEBUG}) {
         $register->debug();
     }
+}
+
+sub run_command_dump {
+    my $register = My::Transaction::Register->new();
+    local $_;
+    local @ARGV = @_;
+    while (<>) {
+        last if /^__END__/;
+        $register->parse_line($_);
+    }
+    $register->dump();
 }
 
 sub run_command_rewrite {
