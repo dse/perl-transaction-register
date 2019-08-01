@@ -415,6 +415,27 @@ sub debug {
     print($t);
 }
 
+use Data::Dumper qw();
+
+sub dump {
+    my ($self) = @_;
+    my $o = {
+        entries => $self->{entries},
+        balance => {
+            posted     => $self->posted_balance(),
+            pending    => $self->pending_balance(),
+            running    => $self->running_balance(),
+            worst_case => $self->worst_case_balance(),
+            future     => $self->future_balance(),
+        },
+    };
+    local $Data::Dumper::Indent = 1;
+    local $Data::Dumper::Terse = 1;
+    local $Data::Dumper::Deepcopy = 1;
+    local $Data::Dumper::Sortkeys = 1;
+    print Data::Dumper::Dumper($o);
+}
+
 sub output_summary {
     my ($self) = @_;
     printf("    Ledger balance: \$%9.2f  (includes posted transactions)\n",
