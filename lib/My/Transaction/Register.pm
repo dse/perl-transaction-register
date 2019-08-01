@@ -97,6 +97,7 @@ sub multiplier {
 
 sub balance {
     my ($self, %args) = @_;
+    my $data       = $args{data};
     my $filter     = $args{filter};
     my $map_amount = $args{map_amount};
     my $offset     = $args{offset} // 0;
@@ -106,6 +107,13 @@ sub balance {
         my $entry = $self->entries->[$i];
         if ($filter) {
             next if !($filter->($entry));
+        }
+        if ($data) {
+            if (ref $data eq 'HASH') {
+                %{$entry->data} = (%{$entry->data}, %{$data});
+            } else {
+                warn $data;
+            }
         }
         if ($map_amount) {
             $result += $self->multiplier * $map_amount->($entry);
@@ -119,6 +127,7 @@ sub balance {
 sub running_balance {
     my ($self, $start, $offset, $length) = @_;
     return $self->balance(
+        data => { running => 1 },
         start => $start,
         offset => $offset,
         length => $length,
@@ -132,6 +141,7 @@ sub running_balance {
 sub pending_balance {
     my ($self, $start, $offset, $length) = @_;
     return $self->balance(
+        data => { pending => 1 },
         start => $start,
         offset => $offset,
         length => $length,
@@ -150,9 +160,34 @@ sub pending_balance {
     );
 }
 
+sub pending_not_posted {
+    my ($self, $start, $offset, $length) = @_;
+    return $self->balance(
+        data => { pending_not_posted => 1 },
+        start => 0,
+        offset => $offset,
+        length => $length,
+        filter => sub {
+            my ($entry) = @_;
+            my $is_pending = ($entry->is_pending || $entry->is_posted) && !$entry->is_future && !$entry->is_todo;
+            my $is_posted  = $entry->is_posted && !$entry->is_future && !$entry->is_todo;
+            return 1 if $is_pending && !$is_posted;
+            return 0;
+        },
+        map_amount => sub {
+            my ($entry) = @_;
+            my $pending_amount = $entry->pending_amount // $entry->amount;
+            my $posted_amount = $entry->amount;
+            warn("pending $pending_amount posted $posted_amount\n");
+            return $pending_amount;
+        },
+    );
+}
+
 sub posted_balance {
     my ($self, $start, $offset, $length) = @_;
     return $self->balance(
+        data => { posted => 1 },
         start => $start,
         offset => $offset,
         length => $length,
@@ -166,6 +201,7 @@ sub posted_balance {
 sub worst_case_balance {
     my ($self, $start, $offset, $length) = @_;
     return $self->balance(
+        data => { worst_case => 1 },
         start => $start,
         offset => $offset,
         length => $length,
@@ -181,6 +217,7 @@ sub worst_case_balance {
 sub future_balance {
     my ($self, $start, $offset, $length) = @_;
     return $self->balance(
+        data => { future => 1 },
         start => $start,
         offset => $offset,
         length => $length
@@ -427,6 +464,7 @@ sub dump {
             running    => $self->running_balance(),
             worst_case => $self->worst_case_balance(),
             future     => $self->future_balance(),
+            pending_not_posted => $self->pending_not_posted(),
         },
     };
     local $Data::Dumper::Indent = 1;
@@ -679,12 +717,13 @@ has 'is_future'      => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_pending'     => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_posted'      => (is => 'rw', isa => 'Bool', default => 0);
 has 'is_todo'        => (is => 'rw', isa => 'Bool', default => 0);
-has 'pending_amount' => (is => 'rw', isa => 'Num|Undef', required => 0, default => 0);
+has 'pending_amount' => (is => 'rw', isa => 'Num|Undef', required => 0); # undef by default so pending_amount // amount works
 has 'amount'         => (is => 'rw', isa => 'Num|Undef', required => 0, default => 0);
 has 'date'           => (is => 'rw', isa => 'Str|Undef');
 has 'date_fmt'       => (is => 'rw', isa => 'Str|Undef');
 has 'merchant'       => (is => 'rw', isa => 'Str');
 has 'flag_out'       => (is => 'rw', isa => 'Str|Undef', required => 0);
+has 'data'           => (is => 'rw', isa => 'HashRef', default => sub { return {}; });
 
 sub get_flag_character {
     my ($self) = @_;
