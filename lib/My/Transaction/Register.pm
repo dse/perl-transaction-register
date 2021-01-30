@@ -52,7 +52,7 @@ BEGIN {
     # optional flag, then date, then amount, then merchant
     $RX_LINE_1 =
       qr{^\s*
-         (?:([\.\-\*\/\+\!]+)\s*)? # optional flag (posted, pending, future, etc.)
+         (?:([\.\-\*\/\+\!]+)\s*)? # optional flag (. recorded, / * posted, - pending, + future, ! todo, etc.)
          ($RX_PARSE_DATE)\s+
          ($RX_PARSE_AMOUNT)\s+
          (\S.*?)		# merchant
@@ -62,7 +62,7 @@ BEGIN {
     # optional flag, then date, then merchant, then amount
     $RX_LINE_2 =
       qr{^\s*
-         (?:([\.\-\*\/\+\!]+)\s*)? # optional flag (posted, pending, future, etc.)
+         (?:([\.\-\*\/\+\!]+)\s*)? # optional flag (recorded, posted, pending, future, todo, etc.)
          ($RX_PARSE_DATE)\s+
          (\S.*?)                # merchant
          \s+
@@ -276,8 +276,12 @@ sub process_parsed_line {
     if (defined $parse_date) {
         $date_fmt = strftime("%Y-%m-%d", localtime($parse_date));
     } else {
-        warn(sprintf("Cannot parse date %s at %s line %s.\n",
-                     $date, $ARGV, $.));
+        if ($date =~ m{\?}) {
+            # do nothing
+        } else {
+            warn(sprintf("Cannot parse date %s at %s line %s.\n",
+                         $date, $ARGV, $.));
+        }
     }
 
     if ($self->strip_comments) {
@@ -314,7 +318,7 @@ sub process_parsed_line {
     my $normalized_text = sprintf(
         "%-7s %-15s %-15s %s",
         $entry->get_flag_character,
-        $entry->date_fmt,
+        $entry->date_fmt // '????-??-??',
         $entry->get_amount_fmt,
         $entry->merchant
     );
@@ -541,11 +545,12 @@ sub parse_date_absolute {
 }
 
 # use Finance::OFX;
-use XML::LibXML;
 use URI::Escape qw(uri_escape);
 
 sub list_ofx_institutions {
     my ($self, $search) = @_;
+    require XML::LibXML;
+    import XML::LibXML qw();
     my $url = $self->get_ofx_search_url($search);
     my $doc = $self->get_xml_doc($url);
     if (!$doc) {
@@ -707,6 +712,13 @@ use warnings;
 use strict;
 
 use base "LWP::UserAgent";
+
+sub new {
+    require LWP::UserAgent;
+    import LWP::UserAgent qw();
+    my $self = shift;
+    return $self->SUPER::new(@_);
+}
 
 package My::Transaction::Register::Entry;
 use warnings;
